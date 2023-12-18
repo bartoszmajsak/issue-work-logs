@@ -34,5 +34,5 @@ This policy grants ingress access through Openshift Routes to the services which
 
 ==== Allow traffic coming from every Data Science Project
 
- This policy grants access to pods from any namespace labeled with `opendatahub.io/dashboard: 'true'`. This label typically denotes namespaces created by the Open Data Hub Dashboard.
+This policy grants access to pods from any namespace labeled with `opendatahub.io/dashboard: 'true'`. This label typically denotes namespaces created by the Open Data Hub Dashboard.
 
