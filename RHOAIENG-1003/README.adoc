@@ -19,7 +19,7 @@ IMPORTANT:  The second default network policy allows pod-to-pod communication wi
 
 Proposed solution adds two `NetworkPolicies`. 
 
-All policies have been labeled with `opendatahub.io/created-by: RHOAIENG-1003`. The reason behind it is to ease further upgrades when such policies will become irrelevant/conflicting. Using this label will allow us to quickly find and remove existing workarounds.
+All policies have been labeled with `opendatahub.io/created-by: RHOAIENG-1003`. The reason behind it is to ease further upgrades when such policies will become irrelevant/conflicting. Using this label will allow us to quickly find and remove existing workarounds. This can be automated in the operator or done from the command line:
 
 [source,shell]
 ----
