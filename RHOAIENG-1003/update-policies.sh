@@ -52,9 +52,36 @@ spec:
 EOF
 )
 
+dsciName=$(kubectl get dsci -o name)
+applicationsNamespace=$(kubectl get "${dsciName}" -o jsonpath='{.spec.applicationsNamespace}')
+allow_traffic_from_data_science_cluster_policy=$(cat <<EOF
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-traffic-from-data-science-cluster-ns
+  namespace: default
+  labels:
+    opendatahub.io/created-by: RHOAIENG-1003
+spec:
+  podSelector: {}
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${applicationsNamespace}
+  policyTypes:
+    - Ingress
+EOF
+)
+
+
 service_mesh_member_namespaces=$(kubectl get namespaces -l maistra.io/member-of=istio-system -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep -v '^istio-system$')
 
-for ns in $service_mesh_member_namespaces; do
-    echo "Applying policies to namespace: $ns"
-    apply_policies "$ns" "$allow_openshift_ingress_policy" "$allow_traffic_from_dsp_policy"
-done
+if [ -z "$service_mesh_member_namespaces" ]; then
+    echo "No namespaces found that are part of the service mesh"
+else
+    for ns in $service_mesh_member_namespaces; do
+        echo "Applying policies to namespace: $ns"
+        apply_policies "$ns" "$allow_openshift_ingress_policy" "$allow_traffic_from_dsp_policy" "$allow_traffic_from_data_science_cluster_policy"
+    done
+fi

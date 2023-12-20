@@ -6,20 +6,20 @@ This is the workaround for the issue described in https://issues.redhat.com/brow
 
 === Why
 
-The problem consists of two parts:
+The problem is a result of following Network Policies being created in this namespace:
 
 - The first default network policy created by Open Shift Service Mesh expects pods to be labeled with `maistra.io/expose-route: "true"` to allow router access to the underlying service, which in case of services not being part of the mesh is not handled automatically
-- Monitoring policy created by Model Controller with podSelector: {} additionally allows traffic from openshift-user-workload-monitoring pods
+- Monitoring policy created by Model Controller with `podSelector: {}` additionally allows traffic originating from pods in `openshift-user-workload-monitoring` namespace.
 
-Disabling automatic network policy creation on the Service Mesh Control Plane part by setting `spec.security.manageNetworkPolicy: false` results in monitoring policy becoming ~catch-all~ traffic and rejecting everything that is not originating from `openshift-user-workload-monitoring` namespace.
+Disabling automatic network policy creation on the Service Mesh Control Plane part by setting `spec.security.manageNetworkPolicy: false` results in monitoring policy becoming ~catch-all~ traffic and rejecting everything that is not originating from `openshift-user-workload-monitoring` namespace (unless there are other policies created which are targeting particular workloads).
 
 IMPORTANT:  The second default network policy allows pod-to-pod communication within the same namespace even if deployment is not participating in the mesh, as ingress is allowed for any pod from the member namespace (see https://github.com/maistra/istio-operator/blob/maistra-2.4/resources/helm/v2.4/mesh-config/templates/networkpolicy.yaml[template]). This policy, however, blocks access originating from non-member namespaces.
 
 === How
 
-Proposed solution adds two `NetworkPolicies`. 
+Proposed solution adds permissive `NetworkPolicies` to unblock traffic to the mesh-member namespaces.
 
-All policies have been labeled with `opendatahub.io/created-by: RHOAIENG-1003`. The reason behind it is to ease further upgrades when such policies will become irrelevant/conflicting. Using this label will allow us to quickly find and remove existing workarounds. This can be automated in the operator or done from the command line:
+All policies have been labeled with `opendatahub.io/created-by: RHOAIENG-1003`. The reason behind it is to ease further upgrades when such policies will become irrelevant/conflicting. Using this label convention allows to quickly find and remove existing workarounds. This can be automated in the operator or done from the command line:
 
 [source,shell]
 ----
@@ -31,6 +31,10 @@ kubectl delete networkpolicies \
 ==== Allow Openshift Routes 
 
 This policy grants ingress access through Openshift Routes to the services which are part of a namespace under Service Mesh, but are not under Service Mesh control. Adding `maistra.io/expose-route: "true"` label to pods and deployments (as suggested by the https://docs.openshift.com/container-platform/4.14/service_mesh/v2x/ossm-profiles-users.html#ossm-config-network-policy_ossm-profiles-users[official documentation]) would require dynamic handling. These resources can be added during the lifespane of the Data Science Project. Using permissive policy instead applies always to all pods existing in the namespace.
+
+==== Allow traffic coming from Data Science Cluster namespace
+
+This policy grants access to pods from applications namespace created and managed by Open Data Hub operator, where component controllers and services are deployed.
 
 ==== Allow traffic coming from every Data Science Project
 
